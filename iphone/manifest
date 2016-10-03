@@ -1,0 +1,13 @@
+version: 1.0.0
+apiversion: 2
+architectures: armv7 arm64 i386 x86_64
+description: ti.barcodescanner
+author: Hans Knoechek
+license: Apache 2
+copyright: Copyright (c) 2016 by Hans Knoechel
+
+name: ti.barcodescanner
+moduleid: ti.barcodescanner
+guid: dcf42617-0190-48f1-b3a6-96070fb439fc
+platform: iphone
+minsdk: 5.5.0.GA
