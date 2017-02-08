@@ -76,10 +76,14 @@
     }
     
     [[barcodeViewController scanner] setCamera:selectedCamera ?: MTBCameraBack];
-    [[barcodeViewController scanner] setTorchMode:selectedLEDMode ?: MTBTorchModeOff];
     [barcodeViewController setShouldAutorotate:allowRotation];
+    [[barcodeViewController scanner] setTorchMode:MTBTorchModeOff];
     
     [[barcodeViewController scanner] startScanningWithResultBlock:^(NSArray *codes) {
+        if (!codes || [codes count] == 0) {
+            return;
+        }
+        
         [self fireEvent:@"success" withObject:@{
             @"result": [(AVMetadataMachineReadableCodeObject*)[codes firstObject] stringValue],
             @"contentType": @"text/plain" // TODO: Expose this?
@@ -101,7 +105,9 @@
         }
     }
     
-    [[[[TiApp app] controller] topPresentedController] presentViewController:barcodeViewController animated:animate completion:nil];
+    [[[[TiApp app] controller] topPresentedController] presentViewController:barcodeViewController animated:animate completion:^{
+        [[barcodeViewController scanner] setTorchMode:selectedLEDMode ?: MTBTorchModeOff];
+    }];
 }
 
 - (void)cancel:(id)unused
