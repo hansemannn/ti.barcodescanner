@@ -21,7 +21,7 @@
     NSString *displayedMessage;
 }
 
-- (id)canShowScanner:(id)unused;
+- (id)canShow:(id)unused;
 
 - (void)capture:(id)args;
 

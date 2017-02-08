@@ -45,7 +45,7 @@
 
 #pragma mark Public API's
 
-- (id)canShowScanner:(id)unused
+- (id)canShow:(id)unused
 {
     return NUMBOOL([MTBBarcodeScanner cameraIsPresent] && ![MTBBarcodeScanner scanningIsProhibited]);
 }
@@ -86,7 +86,7 @@
         
         [self fireEvent:@"success" withObject:@{
             @"result": [(AVMetadataMachineReadableCodeObject*)[codes firstObject] stringValue],
-            @"contentType": @"text/plain" // TODO: Expose this?
+            @"corners": [(AVMetadataMachineReadableCodeObject *)[codes firstObject] corners]
         }];
         
         if (!keepOpen) {
