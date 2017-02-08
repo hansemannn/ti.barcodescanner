@@ -6,9 +6,14 @@
  */
 
 #import "TiModule.h"
+#import "TiBarcodeViewController.h"
 
-@interface TiBarcodescannerModule : TiModule
-{
+@interface TiBarcodescannerModule : TiModule {
+    TiBarcodeViewController *barcodeViewController;
 }
+
+- (NSNumber*)canShowScanner:(id)unused;
+
+- (void)capture:(id)args;
 
 @end

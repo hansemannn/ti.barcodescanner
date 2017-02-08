@@ -185,6 +185,11 @@ static const NSInteger kErrorCodeSessionIsClosed = 1001;
 
 #pragma mark - Scanning
 
+- (void)setMetaDataObjectTypes:(NSArray *)metaDataObjectTypes
+{
+    _metaDataObjectTypes = metaDataObjectTypes;
+}
+
 + (BOOL)cameraIsPresent {
     return [UIImagePickerController isSourceTypeAvailable:UIImagePickerControllerSourceTypeCamera];
 }

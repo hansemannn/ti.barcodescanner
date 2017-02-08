@@ -108,6 +108,9 @@ typedef NS_ENUM(NSUInteger, MTBTorchMode) {
 - (instancetype)initWithMetadataObjectTypes:(NSArray *)metaDataObjectTypes
                                 previewView:(UIView *)previewView;
 
+// Custom
+- (void)setMetaDataObjectTypes:(NSArray *)metaDataObjectTypes;
+
 /**
  *  Returns whether the camera exists in this device.
  *

@@ -4,9 +4,15 @@
  * Licensed under the terms of the Apache Public License
  * Please see the LICENSE included with this distribution for details.
  */
-#import "TiViewProxy.h"
-#import "MTBBarcodeScanner.h"
 
-@interface TiBarcodescannerScannerViewProxy : TiViewProxy
+@class MTBBarcodeScanner;
+
+@interface TiBarcodeViewController : UIViewController {
+
+}
+
+- (void)setOverlayView:(UIView *)view;
+
+@property(nonatomic, strong) MTBBarcodeScanner *scanner;
 
 @end
