@@ -12,17 +12,22 @@
 - (instancetype)init
 {
     if (self = [super init]) {
-        _scanner = [[MTBBarcodeScanner alloc] initWithMetadataObjectTypes:nil previewView:[self view]];
+        _scanner = [[MTBBarcodeScanner alloc] initWithPreviewView:[self view]];
+        _shouldAutorotate = NO;
     }
     
     return self;
 }
 
-
 - (void)setOverlayView:(UIView *)view
 {
-    [view setCenter:CGPointMake(([[UIScreen mainScreen] bounds].size.width / 2), ([[UIScreen mainScreen] bounds].size.width / 2))];
+    [view setFrame:CGRectMake(0, 0, [[UIScreen mainScreen] bounds].size.width, [[UIScreen mainScreen] bounds].size.height)];
     [[self view] addSubview:view];
+}
+
+- (BOOL)shouldAutorotate
+{
+    return _shouldAutorotate;
 }
 
 @end

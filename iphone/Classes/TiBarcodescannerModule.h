@@ -7,13 +7,36 @@
 
 #import "TiModule.h"
 #import "TiBarcodeViewController.h"
+#import "MTBBarcodeScanner.h"
 
 @interface TiBarcodescannerModule : TiModule {
     TiBarcodeViewController *barcodeViewController;
+    
+    MTBCamera selectedCamera;
+    
+    MTBTorchMode selectedLEDMode;
+    
+    BOOL allowRotation;
+    
+    NSString *displayedMessage;
 }
 
-- (NSNumber*)canShowScanner:(id)unused;
+- (id)canShowScanner:(id)unused;
 
 - (void)capture:(id)args;
+
+- (void)cancel:(id)unused;
+
+- (void)setUseLED:(id)value;
+
+- (id)useLED;
+
+- (void)setDisplayedMessage:(id)value;
+
+- (void)setAllowRotation:(id)value;
+
+- (void)setUseFrontCamera:(id)value;
+
+- (id)useFrontCamera;
 
 @end

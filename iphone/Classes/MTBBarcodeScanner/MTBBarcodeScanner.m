@@ -177,10 +177,7 @@ static const NSInteger kErrorCodeSessionIsClosed = 1001;
 }
 
 - (void)dealloc {
-    [_previewView release];
-    [[NSNotificationCenter defaultCenter] removeObserver:self];
-    
-    [super dealloc];
+    [[NSNotificationCenter defaultCenter] removeObserver:self];    
 }
 
 #pragma mark - Scanning

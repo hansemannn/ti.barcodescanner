@@ -10,7 +10,6 @@
 #import "TiHost.h"
 #import "TiUtils.h"
 #import "TiViewProxy.h"
-#import "MTBBarcodeScanner.h"
 #import "TiApp.h"
 
 @implementation TiBarcodescannerModule
@@ -34,18 +33,17 @@
 	[super startup];
 
 	NSLog(@"[DEBUG] %@ loaded",self);
+    
+    [self initialize];
+}
+
+- (void)initialize
+{
+    selectedCamera = MTBCameraBack;
+    selectedLEDMode = MTBTorchModeOff;
 }
 
 #pragma mark Public API's
-
-- (TiBarcodeViewController *)barcodeViewController
-{
-    if (!barcodeViewController) {
-        barcodeViewController = [[TiBarcodeViewController alloc] init];
-    }
-    
-    return barcodeViewController;
-}
 
 - (id)canShowScanner:(id)unused
 {
@@ -58,24 +56,33 @@
     
     BOOL keepOpen = [TiUtils boolValue:[args objectForKey:@"keepOpen"] def:NO];
     BOOL animate = [TiUtils boolValue:[args objectForKey:@"animate"] def:YES];
-    NSArray *acceptedFormats = [args objectForKey:@"acceptedFormats"];
+    NSMutableArray *acceptedFormats = [NSMutableArray arrayWithArray:[args objectForKey:@"acceptedFormats"]];
     TiViewProxy *overlayProxy = [args objectForKey:@"overlay"];
+    
+    barcodeViewController = [[TiBarcodeViewController alloc] init];
     
     NSError *error = nil;
     
     if (overlayProxy != nil) {
-        [[self barcodeViewController] setOverlayView:[self prepareOverlayWithProxy:overlayProxy]];
+        [barcodeViewController setOverlayView:[self prepareOverlayWithProxy:overlayProxy]];
     }
     
     if (acceptedFormats != nil) {
-        [[[self barcodeViewController] scanner] setMetaDataObjectTypes:[TiBarcodescannerModule formattedMetaDataObjectTypes:acceptedFormats]];
-        // TODO: Implement custom functionality
+        if ([acceptedFormats containsObject:@-1]) {
+            NSLog(@"[WARN] The code-format FORMAT_NONE is deprecated. Use an empty array instead or don't specify formats.");
+            [acceptedFormats removeObject:@-1];
+        }
+        [[barcodeViewController scanner] setMetaDataObjectTypes:[TiBarcodescannerModule formattedMetaDataObjectTypes:acceptedFormats]];
     }
     
-    [[[self barcodeViewController] scanner] startScanningWithResultBlock:^(NSArray *codes) {
+    [[barcodeViewController scanner] setCamera:selectedCamera ?: MTBCameraBack];
+    [[barcodeViewController scanner] setTorchMode:selectedLEDMode ?: MTBTorchModeOff];
+    [barcodeViewController setShouldAutorotate:allowRotation];
+    
+    [[barcodeViewController scanner] startScanningWithResultBlock:^(NSArray *codes) {
         [self fireEvent:@"success" withObject:@{
             @"result": [(AVMetadataMachineReadableCodeObject*)[codes firstObject] stringValue],
-            @"contentType": @""
+            @"contentType": @"text/plain" // TODO: Expose this?
         }];
         
         if (!keepOpen) {
@@ -94,7 +101,7 @@
         }
     }
     
-    [[[[TiApp app] controller] topPresentedController] presentViewController:[self barcodeViewController] animated:animate completion:nil];
+    [[[[TiApp app] controller] topPresentedController] presentViewController:barcodeViewController animated:animate completion:nil];
 }
 
 - (void)cancel:(id)unused
@@ -105,20 +112,24 @@
 
 - (void)setUseLED:(id)value
 {
-    [[[self barcodeViewController] scanner] setTorchMode:[TiUtils boolValue:value def:YES] ? MTBTorchModeOn : MTBTorchModeOff];
+    ENSURE_TYPE(value, NSNumber);
+    [self replaceValue:value forKey:@"useLED" notification:NO];
+
+    selectedLEDMode = [TiUtils boolValue:value def:YES] ? MTBTorchModeOn : MTBTorchModeOff;
+    
+    if (barcodeViewController) {
+        [[barcodeViewController scanner] setTorchMode:selectedLEDMode];
+    }
 }
 
 - (id)useLED
 {
-    return NUMBOOL([[[self barcodeViewController] scanner] torchMode] == MTBTorchModeOn);
+    return NUMBOOL(selectedLEDMode == MTBTorchModeOn);
 }
 
 - (void)setDisplayedMessage:(id)value
 {
-    ENSURE_TYPE(value, NSString);
-    [self replaceValue:value forKey:@"displayedMessage" notification:NO];
-
-    // TODO: Implement custom functionality
+    NSLog(@"[ERROR] The \"displayedMessage\" property has been removed in the latest release. Place a label in a custom view instead.");
 }
 
 - (void)setAllowRotation:(id)value
@@ -126,7 +137,7 @@
     ENSURE_TYPE(value, NSNumber);
     [self replaceValue:value forKey:@"allowRotation" notification:NO];
 
-    // TODO: Implement custom functionality
+    allowRotation = [TiUtils boolValue:value def:NO];
 }
 
 - (void)setUseFrontCamera:(id)value
@@ -134,17 +145,21 @@
     ENSURE_TYPE(value, NSNumber);
     [self replaceValue:value forKey:@"useFrontCamera" notification:NO];
     
-    [[[self barcodeViewController] scanner] setCamera:[TiUtils boolValue:value def:YES] ? MTBCameraFront : MTBCameraBack];
+    selectedCamera = [TiUtils boolValue:value def:YES] ? MTBCameraFront : MTBCameraBack;
+    
+    if (barcodeViewController) {
+        [[barcodeViewController scanner] setCamera:selectedCamera];
+    }
 }
 
 - (id)useFrontCamera
 {
-    return NUMBOOL([[[self barcodeViewController] scanner] camera] == MTBCameraFront);
+    return NUMBOOL(selectedCamera == MTBCameraFront);
 }
 
 #pragma mark Internal
 
-- (NSArray *)formattedMetaDataObjectTypes:(NSArray *)array
++ (NSArray *)formattedMetaDataObjectTypes:(NSArray *)array
 {
     return @[AVMetadataObjectTypeQRCode];
 }
@@ -181,11 +196,39 @@
 
 - (void)closeScanner
 {
-    if ([[[self barcodeViewController] scanner] isScanning]) {
-        [[[self barcodeViewController] scanner] stopScanning];
+    if (!barcodeViewController) {
+        NSLog(@"[ERROR] Trying to dismiss a scanner that hasn't been created, yet. Try again, Marty!");
+        return;
+    }
+    if ([[barcodeViewController scanner] isScanning]) {
+        [[barcodeViewController scanner] stopScanning];
     }
     
-    [[self barcodeViewController] dismissViewControllerAnimated:YES completion:nil];
+    [barcodeViewController setScanner:nil];
+    [[[[barcodeViewController view] subviews] objectAtIndex:0] removeFromSuperview];
+    [barcodeViewController dismissViewControllerAnimated:YES completion:nil];
 }
+
+#pragma mark Constants
+
+
+MAKE_SYSTEM_PROP(FORMAT_NONE, -1); // Deprecated, don't specify types
+MAKE_SYSTEM_PROP(FORMAT_QR_CODE, AVMetadataObjectTypeQRCode);
+MAKE_SYSTEM_PROP(FORMAT_DATA_MATRIX, AVMetadataObjectTypeDataMatrixCode);
+MAKE_SYSTEM_PROP(FORMAT_UPC_E, AVMetadataObjectTypeUPCECode);
+MAKE_SYSTEM_PROP(FORMAT_UPC_A, AVMetadataObjectTypeEAN13Code); // Sub-set
+MAKE_SYSTEM_PROP(FORMAT_EAN_8 ,AVMetadataObjectTypeEAN8Code);
+MAKE_SYSTEM_PROP(FORMAT_EAN_13, AVMetadataObjectTypeEAN13Code);
+MAKE_SYSTEM_PROP(FORMAT_CODE_128, AVMetadataObjectTypeCode128Code);
+MAKE_SYSTEM_PROP(FORMAT_CODE_39, AVMetadataObjectTypeCode39Code);
+MAKE_SYSTEM_PROP(FORMAT_CODE_93, AVMetadataObjectTypeCode93Code); // New!
+MAKE_SYSTEM_PROP(FORMAT_CODE_39_MOD_43, AVMetadataObjectTypeCode39Mod43Code); // New!
+MAKE_SYSTEM_PROP(FORMAT_ITF, AVMetadataObjectTypeITF14Code);
+MAKE_SYSTEM_PROP(FORMAT_PDF_417, AVMetadataObjectTypePDF417Code); // New!
+MAKE_SYSTEM_PROP(FORMAT_AZTEC, AVMetadataObjectTypeAztecCode); // New!
+MAKE_SYSTEM_PROP(FORMAT_FACE, AVMetadataObjectTypeFace); // New!
+MAKE_SYSTEM_PROP(FORMAT_INTERLEAVED_2_OF_5, AVMetadataObjectTypeInterleaved2of5Code); // New!
+
+
 
 @end

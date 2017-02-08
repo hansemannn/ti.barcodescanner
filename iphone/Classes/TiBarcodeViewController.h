@@ -15,4 +15,6 @@
 
 @property(nonatomic, strong) MTBBarcodeScanner *scanner;
 
+@property(nonatomic, assign) BOOL shouldAutorotate;
+
 @end
