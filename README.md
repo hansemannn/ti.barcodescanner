@@ -1,5 +1,6 @@
 # Ti.BarcodeScanner
-
+  [![License](http://hans-knoechel.de/shields/shield-license.svg)](./LICENSE)  [![Contact](http://hans-knoechel.de/shields/shield-twitter.svg)](http://twitter.com/hansemannnn)
+  
 And experimental attempt to map the Ti.Barcode API to a `AVCaptureDevice` based implementation.
 
 ## API's
