@@ -6,15 +6,20 @@ And experimental attempt to map the Ti.Barcode API to a `AVCaptureDevice` based 
 ## API's
 ### Methods
 - [x] canShow()
-- [x] capture(args)
+- [x] capture(`args`)
 - [x] cancel()
 
 ### Properties
-- [x] useLED [true/false]
-- [x] useFrontCamera [true/false]
+- [x] useLED [`true`/`false`]
+- [x] useFrontCamera [`true`/`false`]
 - [x] overlay
 - [x] allowRotation
 - [x] acceptedFormats
+
+### Events
+- [x] success (`result`, `corners`)
+- [x] error (`message`)
+- [x] cancel
 
 ### Constants
 - [x] FORMAT_NONE // Deprecated, don't specify types instead
