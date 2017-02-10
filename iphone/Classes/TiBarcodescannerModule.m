@@ -52,6 +52,7 @@
 
 - (void)capture:(id)args
 {
+    ENSURE_UI_THREAD(capture, args);
     ENSURE_SINGLE_ARG(args, NSDictionary);
     
     BOOL keepOpen = [TiUtils boolValue:[args objectForKey:@"keepOpen"] def:NO];
@@ -72,7 +73,7 @@
             NSLog(@"[WARN] The code-format FORMAT_NONE is deprecated. Use an empty array instead or don't specify formats.");
             [acceptedFormats removeObject:@-1];
         }
-        [[barcodeViewController scanner] setMetaDataObjectTypes:[TiBarcodescannerModule formattedMetaDataObjectTypes:acceptedFormats]];
+        [[barcodeViewController scanner] setMetaDataObjectTypes:acceptedFormats];
     }
     
     [[barcodeViewController scanner] setCamera:selectedCamera ?: MTBCameraBack];
@@ -110,8 +111,37 @@
     }];
 }
 
+- (void)freezeCapture:(id)unused
+{
+    ENSURE_UI_THREAD(freezeCapture, unused);
+    [[barcodeViewController scanner] freezeCapture];
+}
+
+- (void)unfreezeCapture:(id)unused
+{
+    ENSURE_UI_THREAD(unfreezeCapture, unused);
+    [[barcodeViewController scanner] unfreezeCapture];
+}
+
+- (void)captureStillImage:(id)value
+{
+    ENSURE_UI_THREAD(captureStillImage, value);
+    ENSURE_SINGLE_ARG(value, KrollCallback);
+    
+    [[barcodeViewController scanner] captureStillImage:^(UIImage *image, NSError *error) {
+        TiBlob *blob = [[TiBlob alloc] _initWithPageContext:[self pageContext]];
+        [blob setImage:image];
+        [blob setMimeType:@"image/png" type:TiBlobTypeImage];
+        
+        NSDictionary *event = [NSDictionary dictionaryWithObject:blob forKey:@"image"];
+        [self _fireEventToListener:@"blob" withObject:event listener:(KrollCallback *)value thisObject:nil];
+    }];
+}
+
 - (void)cancel:(id)unused
 {
+    ENSURE_UI_THREAD(cancel, unused);
+    
     [self closeScanner];
     [self fireEvent:@"cancel" withObject:nil];
 }
@@ -131,11 +161,6 @@
 - (id)useLED
 {
     return NUMBOOL(selectedLEDMode == MTBTorchModeOn);
-}
-
-- (void)setDisplayedMessage:(id)value
-{
-    NSLog(@"[ERROR] The \"displayedMessage\" property has been removed in the latest release. Place a label in a custom view instead.");
 }
 
 - (void)setAllowRotation:(id)value
@@ -165,37 +190,32 @@
 
 #pragma mark Internal
 
-+ (NSArray *)formattedMetaDataObjectTypes:(NSArray *)array
-{
-    return @[AVMetadataObjectTypeQRCode];
-}
-
 - (UIView *)prepareOverlayWithProxy:(TiViewProxy *)overlayProxy
 {
-        [overlayProxy windowWillOpen];
-        
-        CGSize size = [overlayProxy view].bounds.size;
-        
+    [overlayProxy windowWillOpen];
+    
+    CGSize size = [overlayProxy view].bounds.size;
+    
 #ifndef TI_USE_AUTOLAYOUT
-        CGFloat width = [overlayProxy autoWidthForSize:CGSizeMake(MAXFLOAT,MAXFLOAT)];
-        CGFloat height = [overlayProxy autoHeightForSize:CGSizeMake(width,0)];
+    CGFloat width = [overlayProxy autoWidthForSize:CGSizeMake(MAXFLOAT,MAXFLOAT)];
+    CGFloat height = [overlayProxy autoHeightForSize:CGSizeMake(width,0)];
 #else
-        CGSize s = [[overlayProxy view] sizeThatFits:CGSizeMake(MAXFLOAT,MAXFLOAT)];
-        CGFloat width = s.width;
-        CGFloat height = s.height;
+    CGSize s = [[overlayProxy view] sizeThatFits:CGSizeMake(MAXFLOAT,MAXFLOAT)];
+    CGFloat width = s.width;
+    CGFloat height = s.height;
 #endif
-        
-        if (width > 0 && height > 0) {
-            size = CGSizeMake(width, height);
-        }
-        
-        if (CGSizeEqualToSize(size, CGSizeZero) || width==0 || height == 0) {
-            size = [UIScreen mainScreen].bounds.size;
-        }
-        
-        CGRect rect = CGRectMake(0, 0, size.width, size.height);
-        [TiUtils setView:[overlayProxy view] positionRect:rect];
-        [overlayProxy layoutChildren:NO];
+    
+    if (width > 0 && height > 0) {
+        size = CGSizeMake(width, height);
+    }
+    
+    if (CGSizeEqualToSize(size, CGSizeZero) || width==0 || height == 0) {
+        size = [UIScreen mainScreen].bounds.size;
+    }
+    
+    CGRect rect = CGRectMake(0, 0, size.width, size.height);
+    [TiUtils setView:[overlayProxy view] positionRect:rect];
+    [overlayProxy layoutChildren:NO];
     
     return [overlayProxy view];
 }

@@ -25,13 +25,17 @@
 
 - (void)capture:(id)args;
 
+- (void)freezeCapture:(id)unused;
+
+- (void)unfreezeCapture:(id)unused;
+
+- (void)captureStillImage:(id)value;
+
 - (void)cancel:(id)unused;
 
 - (void)setUseLED:(id)value;
 
 - (id)useLED;
-
-- (void)setDisplayedMessage:(id)value;
 
 - (void)setAllowRotation:(id)value;
 

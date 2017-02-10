@@ -7,6 +7,9 @@ And experimental attempt to map the Ti.Barcode API to a `AVCaptureDevice` based 
 ### Methods
 - [x] canShow()
 - [x] capture(`args`)
+- [x] captureStillImage(`callback`)
+- [x] freezeCapture()
+- [x] unfreezeCapture()
 - [x] cancel()
 
 ### Properties
