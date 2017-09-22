@@ -1,6 +1,6 @@
 /**
- * Appcelerator Titanium Mobile
- * Copyright (c) 2009-2016 by Appcelerator, Inc. All Rights Reserved.
+ * Ti.BarcodeScanner
+ * Copyright (c) 2017-present by Hans Knöchel. All Rights Reserved.
  * Licensed under the terms of the Apache Public License
  * Please see the LICENSE included with this distribution for details.
  */
@@ -10,6 +10,8 @@
 @interface TiBarcodeViewController : UIViewController {
 
 }
+
+- (instancetype)initWithObjectTypes:(NSArray *)objectTypes;
 
 - (void)setOverlayView:(UIView *)view;
 

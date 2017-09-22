@@ -1,8 +1,8 @@
 /**
- * ti.barcodescanner
- *
- * Created by Your Name
- * Copyright (c) 2016 Your Company. All rights reserved.
+ * Ti.BarcodeScanner
+ * Copyright (c) 2017-present by Hans Knöchel. All Rights Reserved.
+ * Licensed under the terms of the Apache Public License
+ * Please see the LICENSE included with this distribution for details.
  */
 
 #import "TiBarcodescannerModule.h"
@@ -59,24 +59,31 @@
     BOOL animate = [TiUtils boolValue:[args objectForKey:@"animate"] def:YES];
     NSMutableArray *acceptedFormats = [NSMutableArray arrayWithArray:[args objectForKey:@"acceptedFormats"]];
     TiViewProxy *overlayProxy = [args objectForKey:@"overlay"];
-    
-    barcodeViewController = [[TiBarcodeViewController alloc] init];
+  
+    if (acceptedFormats != nil) {
+      if ([acceptedFormats containsObject:@-1]) {
+        NSLog(@"[WARN] The code-format FORMAT_NONE is deprecated. Use an empty array instead or don't specify formats.");
+        [acceptedFormats removeObject:@-1];
+      }
+    }
+  
+    barcodeViewController = [[TiBarcodeViewController alloc] initWithObjectTypes:acceptedFormats];
     
     NSError *error = nil;
-    
+    NSError *cameraError = nil;
+
     if (overlayProxy != nil) {
         [barcodeViewController setOverlayView:[self prepareOverlayWithProxy:overlayProxy]];
     }
-    
-    if (acceptedFormats != nil) {
-        if ([acceptedFormats containsObject:@-1]) {
-            NSLog(@"[WARN] The code-format FORMAT_NONE is deprecated. Use an empty array instead or don't specify formats.");
-            [acceptedFormats removeObject:@-1];
-        }
-        [[barcodeViewController scanner] setMetaDataObjectTypes:acceptedFormats];
+  
+    [[barcodeViewController scanner] setCamera:selectedCamera ?: MTBCameraBack error:&cameraError];
+  
+    if (cameraError) {
+        [self fireEvent:@"error" withObject:@{
+            @"message": [cameraError localizedDescription] ?: @"Unknown error occurred."
+        }];
     }
-    
-    [[barcodeViewController scanner] setCamera:selectedCamera ?: MTBCameraBack];
+  
     [barcodeViewController setShouldAutorotate:allowRotation];
     [[barcodeViewController scanner] setTorchMode:MTBTorchModeOff];
     
@@ -97,8 +104,7 @@
     
     if (error) {
         [self fireEvent:@"error" withObject:@{
-            @"message": [error localizedDescription] ?: @"Unknown error occurred.",
-            @"contentType": @""
+            @"message": [error localizedDescription] ?: @"Unknown error occurred."
         }];
         
         if (!keepOpen) {
@@ -177,9 +183,16 @@
     [self replaceValue:value forKey:@"useFrontCamera" notification:NO];
     
     selectedCamera = [TiUtils boolValue:value def:YES] ? MTBCameraFront : MTBCameraBack;
-    
+    NSError *cameraError;
+  
     if (barcodeViewController) {
-        [[barcodeViewController scanner] setCamera:selectedCamera];
+        [[barcodeViewController scanner] setCamera:selectedCamera error:&cameraError];
+      
+        if (cameraError) {
+            [self fireEvent:@"error" withObject:@{
+                @"message": [cameraError localizedDescription] ?: @"Unknown error occurred."
+            }];
+        }
     }
 }
 
@@ -254,7 +267,5 @@ MAKE_SYSTEM_PROP(FORMAT_PDF_417, AVMetadataObjectTypePDF417Code); // New!
 MAKE_SYSTEM_PROP(FORMAT_AZTEC, AVMetadataObjectTypeAztecCode); // New!
 MAKE_SYSTEM_PROP(FORMAT_FACE, AVMetadataObjectTypeFace); // New!
 MAKE_SYSTEM_PROP(FORMAT_INTERLEAVED_2_OF_5, AVMetadataObjectTypeInterleaved2of5Code); // New!
-
-
 
 @end
